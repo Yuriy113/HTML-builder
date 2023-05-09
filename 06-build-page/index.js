@@ -2,20 +2,36 @@ const { readdir, readFile, writeFile, appendFile, copyFile, mkdir } = require('f
 const fs = require('fs');
 const path = require('path');
 
-let header = '';
-let footer = '';
-let articles = '';
+// let header = '';
+// let footer = '';
+// let articles = '';
+
+let HTMLComponents = {};
 
 const readComponents = async () => {
-  header = await readFile(path.join(__dirname, 'components', 'header.html'), {
-    encoding: 'utf-8',
-  });
-  footer = await readFile(path.join(__dirname, 'components', 'footer.html'), {
-    encoding: 'utf-8',
-  });
-  articles = await readFile(path.join(__dirname, 'components', 'articles.html'), {
-    encoding: 'utf-8',
-  });
+  const components = await readdir(path.join(__dirname, 'components'));
+  // console.log(components);
+
+  // header = await readFile(path.join(__dirname, 'components', 'header.html'), {
+  //   encoding: 'utf-8',
+  // });
+  // footer = await readFile(path.join(__dirname, 'components', 'footer.html'), {
+  //   encoding: 'utf-8',
+  // });
+  // articles = await readFile(path.join(__dirname, 'components', 'articles.html'), {
+  //   encoding: 'utf-8',
+  // });
+
+  for (let component of components) {
+    // HTMLComponents[path.parse(component).name] = component;
+    HTMLComponents[path.parse(component).name] = await readFile(
+      path.join(__dirname, 'components', component),
+      {
+        encoding: 'utf-8',
+      },
+    );
+  }
+  // console.log(HTMLComponents);
 };
 
 const createFolder = async () => {
@@ -24,16 +40,21 @@ const createFolder = async () => {
   });
 };
 
-const createHtmlBundle = async () => {
+const createHtmlBundle = async (files) => {
   const output = fs.createWriteStream(path.join(__dirname, 'project-dist', 'index.html'));
   let template = '';
   const stream = fs.createReadStream(path.join(__dirname, 'template.html'), 'utf-8');
   stream.on('data', (chunk) => (template += chunk));
   stream.on('end', () => {
-    template = template
-      .replace('{{header}}', header)
-      .replace('{{footer}}', footer)
-      .replace('{{articles}}', articles);
+    // template = template
+    //   .replace('{{header}}', header)
+    //   .replace('{{footer}}', footer)
+    //   .replace('{{articles}}', articles);
+    for (let file in files) {
+      template = template.replace(`{{${file}}}`, files[file]);
+      // console.log(file.title);
+      // console.log(file);
+    }
 
     output.write(template);
   });
@@ -90,7 +111,7 @@ const createBundle = async () => {
   const pathToAssets = path.join(__dirname, 'assets');
   await copyFolder(pathToAssets);
   await readComponents();
-  await createHtmlBundle();
+  await createHtmlBundle(HTMLComponents);
   await createCssBundle();
 };
 
